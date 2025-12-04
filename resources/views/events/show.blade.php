@@ -5,16 +5,41 @@
                 <div class="lg:flex">
 
                     {{-- cover image --}}
-                    <div class="lg:w-1/3 relative h-96 lg:h-auto overflow-hidden rounded-t-lg lg:rounded-l-lg lg:rounded-t-none flex-shrink-0">
+                    <div class="lg:w-1/3 relative h-96 lg:h-auto overflow-hidden rounded-t-lg lg:rounded-l-lg lg:rounded-t-none flex-shrink-0 bg-gray-300">
                         @php
-                            $imageUrl = str_starts_with($event->cover_image, 'http')
-                                ? $event->cover_image
-                                : asset('storage/' . $event->cover_image);
+                            $placeholderDomain = 'https://via.placeholder.com';
+                            $imagePath = $event->cover_image;
+
+                            $isPlaceholder = str_starts_with($imagePath, $placeholderDomain);
+                            $isEmpty = empty($imagePath);
+
+                            $isLocalFile = !$isEmpty && !str_starts_with($imagePath, 'http');
+                            $localFileExists = false;
+
+                            if ($isLocalFile) {
+                                $localFileExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($imagePath);
+                            }
+
+                            $showFallbackDiv = $isPlaceholder || $isEmpty || ($isLocalFile && !$localFileExists);
+
+                            if (!$showFallbackDiv) {
+                                if (str_starts_with($imagePath, 'http')) {
+                                    $imageUrl = $imagePath;
+                                } else {
+                                    $imageUrl = asset('storage/' . $imagePath);
+                                }
+                            }
                         @endphp
 
-                        <img src="{{ $imageUrl ?? 'https://placehold.co/800x1200/1e293b/ffffff?text=Esemény+Kép' }}"
-                            alt="{{ $event->title }} borítóképe"
-                            class="w-full h-full object-cover">
+                        @if ($showFallbackDiv)
+                            <div class="w-full h-full flex items-center justify-center text-gray-500 font-semibold text-lg">
+                                BORÍTÓKÉP
+                            </div>
+                        @else
+                            <img src="{{ $imageUrl }}"
+                                alt="{{ $event->title }} borítóképe"
+                                class="w-full h-full object-cover">
+                        @endif
                     </div>
 
                     {{-- event details --}}

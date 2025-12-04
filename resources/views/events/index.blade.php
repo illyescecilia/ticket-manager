@@ -37,17 +37,41 @@
                         <div class="bg-white overflow-hidden shadow-xl rounded-lg flex flex-col">
 
                             {{-- cover image and ticket availability --}}
-                            <div class="relative h-48 bg-gray-200">
+                            <div class="relative h-48 bg-gray-300">
                                 @php
-                                    $imageUrl = str_starts_with($event->cover_image, 'http')
-                                        ? $event->cover_image
-                                        : asset('storage/' . $event->cover_image);
+                                    $placeholderDomain = 'https://via.placeholder.com';
+                                    $imagePath = $event->cover_image;
+
+                                    $isPlaceholder = str_starts_with($imagePath, $placeholderDomain);
+                                    $isEmpty = empty($imagePath);
+
+                                    $isLocalFile = !$isEmpty && !str_starts_with($imagePath, 'http');
+                                    $localFileExists = false;
+
+                                    if ($isLocalFile) {
+                                        $localFileExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($imagePath);
+                                    }
+
+                                    $showFallbackDiv = $isPlaceholder || $isEmpty || ($isLocalFile && !$localFileExists);
+
+                                    if (!$showFallbackDiv) {
+                                        if (str_starts_with($imagePath, 'http')) {
+                                            $imageUrl = $imagePath;
+                                        } else {
+                                            $imageUrl = asset('storage/' . $imagePath);
+                                        }
+                                    }
                                 @endphp
 
-                                <img src="{{ $imageUrl ?? 'https://placehold.co/800x400/1e293b/ffffff?text=Esemény+Kép' }}"
-                                    alt="{{ $event->title }} borítóképe"
-                                    class="w-full h-full object-cover"
-                                    onerror="this.onerror=null; this.src='https://placehold.co/600x400/94a3b8/ffffff?text=Borítókép';">
+                                @if ($showFallbackDiv)
+                                    <div class="w-full h-full flex items-center justify-center text-gray-500 font-semibold text-lg">
+                                        BORÍTÓKÉP
+                                    </div>
+                                @else
+                                    <img src="{{ $imageUrl }}"
+                                        alt="{{ $event->title }} borítóképe"
+                                        class="w-full h-full object-cover">
+                                @endif
 
                                 <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-300">
                                     <div class="h-full {{ $statusColor }} transition-all duration-500"
